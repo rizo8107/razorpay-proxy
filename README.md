@@ -7,7 +7,8 @@ A secure proxy server for handling Razorpay API requests, ensuring payment captu
 - Securely handles Razorpay API requests
 - Enforces payment_capture=1 to ensure payments are automatically captured
 - Keeps your Razorpay API keys secure on the server
-- Provides endpoints for creating orders, verifying payments, and capturing payments
+- Provides comprehensive Order API integration
+- Includes payment verification and capture endpoints
 - Includes API key authentication for added security
 
 ## Setup Instructions
@@ -45,16 +46,25 @@ A secure proxy server for handling Razorpay API requests, ensuring payment captu
 6. Configure environment variables (PORT, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, API_KEY, ALLOWED_ORIGINS)
 7. Deploy the application
 
-### Post Deployment
-
-After deployment, you can use the following endpoints:
-
-- `POST /create-order`: Create a new Razorpay order
-- `POST /verify-payment`: Verify a payment signature
-- `POST /capture-payment`: Capture a payment
-- `GET /health`: Check if the server is running
+### API Endpoints
 
 Include the `X-API-Key` header with your API key for all requests.
+
+#### Order Management
+- `POST /create-order`: Create a new Razorpay order
+  - Body: `{ "amount": 50000, "currency": "INR", "receipt": "receipt_123", "notes": {} }`
+- `GET /orders/:orderId`: Get details of a specific order
+- `GET /orders`: List all orders
+  - Query params: `from`, `to`, `count`, `skip`
+
+#### Payment Operations
+- `POST /verify-payment`: Verify a payment signature
+  - Body: `{ "payment_id": "pay_123", "order_id": "order_123", "signature": "generated_signature" }`
+- `POST /capture-payment`: Capture a payment (if needed)
+  - Body: `{ "payment_id": "pay_123", "amount": 50000 }`
+
+#### Monitoring
+- `GET /health`: Check if the server is running
 
 ## Security Considerations
 
