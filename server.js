@@ -38,12 +38,11 @@ app.post('/create-order', authenticateApiKey, async (req, res) => {
   try {
     const { amount, currency, receipt, notes } = req.body;
     
-    // Ensure payment_capture is set to 1
+    // Prepare request body with required parameters
     const requestBody = {
       amount,
       currency: currency || 'INR',
       receipt: receipt || `receipt_${Date.now()}`,
-      payment_capture: 1, // Force payment_capture to 1
       notes: notes || {}
     };
     

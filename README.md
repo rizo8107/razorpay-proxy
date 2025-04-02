@@ -1,11 +1,11 @@
 # Razorpay Proxy Server
 
-A secure proxy server for handling Razorpay API requests, ensuring payment capture works correctly while keeping your API keys secure.
+A secure proxy server for handling Razorpay API requests, ensuring payment processing works correctly while keeping your API keys secure.
 
 ## Features
 
 - Securely handles Razorpay API requests
-- Enforces payment_capture=1 to ensure payments are automatically captured
+- Follows Razorpay's official API documentation
 - Keeps your Razorpay API keys secure on the server
 - Provides comprehensive Order API integration
 - Includes payment verification and capture endpoints
@@ -25,6 +25,16 @@ A secure proxy server for handling Razorpay API requests, ensuring payment captu
 - `RAZORPAY_KEY_SECRET`: Your Razorpay Key Secret
 - `API_KEY`: A secure API key of your choice to authenticate requests to this proxy
 - `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS
+
+## Auto-Capture Configuration
+
+Auto-capture of payments is controlled by your Razorpay dashboard settings, not in the API calls. To enable auto-capture:
+
+1. Log in to your Razorpay dashboard
+2. Go to Settings > Payment Capture > Auto Capture
+3. Set "Auto Capture" to "ON"
+
+For more information, refer to [Razorpay's documentation on payment capture](https://razorpay.com/docs/payments/payments/capture-settings/).
 
 ## Deploying to Easy Panel
 
@@ -60,7 +70,7 @@ Include the `X-API-Key` header with your API key for all requests.
 #### Payment Operations
 - `POST /verify-payment`: Verify a payment signature
   - Body: `{ "payment_id": "pay_123", "order_id": "order_123", "signature": "generated_signature" }`
-- `POST /capture-payment`: Capture a payment (if needed)
+- `POST /capture-payment`: Manually capture a payment (if auto-capture is OFF)
   - Body: `{ "payment_id": "pay_123", "amount": 50000 }`
 
 #### Monitoring
