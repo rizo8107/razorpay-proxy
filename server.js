@@ -8,6 +8,20 @@ const axios = require('axios');
 // Load environment variables
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'API_KEY'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`[ERROR] Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  console.error('[ERROR] Please ensure all required environment variables are set in your .env file or environment');
+  process.exit(1);
+}
+
+console.log('[INFO] Environment variables validated successfully');
+console.log(`[INFO] ALLOWED_ORIGINS: ${process.env.ALLOWED_ORIGINS || '*'}`);
+console.log(`[INFO] API_KEY: ${process.env.API_KEY.substring(0, 8)}...`);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -29,10 +43,15 @@ app.use((req, res, next) => {
 const authenticateApiKey = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   
+  console.log(`[AUTH] Received API key: ${apiKey ? apiKey.substring(0, 8) + '...' : 'undefined'}`);
+  console.log(`[AUTH] Expected API key: ${process.env.API_KEY ? process.env.API_KEY.substring(0, 8) + '...' : 'undefined'}`);
+  
   if (!apiKey || apiKey !== process.env.API_KEY) {
+    console.error(`[AUTH] Authentication failed: API key mismatch or missing`);
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
+  console.log(`[AUTH] Authentication successful`);
   next();
 };
 
@@ -206,7 +225,10 @@ app.post('/api/payments/capture', authenticateApiKey, async (req, res) => {
   try {
     const { payment_id, amount } = req.body;
     
+    console.log(`[CAPTURE] Processing payment capture request:`, { payment_id, amount });
+    
     if (!payment_id) {
+      console.error(`[CAPTURE] Missing payment_id in request`);
       return res.status(400).json({ error: 'payment_id is required' });
     }
     
@@ -215,31 +237,47 @@ app.post('/api/payments/capture', authenticateApiKey, async (req, res) => {
       requestBody.amount = amount;
     }
     
-    console.log(`Capturing payment ${payment_id}${amount ? ` for amount ${amount}` : ''}`);
+    console.log(`[CAPTURE] Capturing payment ${payment_id}${amount ? ` for amount ${amount}` : ''}`);
     
-    const response = await axios.post(
-      `${RAZORPAY_API}/payments/${payment_id}/capture`, 
-      requestBody,
-      {
-        auth: {
-          username: process.env.RAZORPAY_KEY_ID,
-          password: process.env.RAZORPAY_KEY_SECRET
+    try {
+      const response = await axios.post(
+        `${RAZORPAY_API}/payments/${payment_id}/capture`, 
+        requestBody,
+        {
+          auth: {
+            username: process.env.RAZORPAY_KEY_ID,
+            password: process.env.RAZORPAY_KEY_SECRET
+          }
         }
-      }
-    );
-    
-    console.log('Payment captured successfully:', response.data.status);
-    res.json(response.data);
+      );
+      
+      console.log(`[CAPTURE] Payment captured successfully:`, response.data.status);
+      res.json(response.data);
+    } catch (razorpayError) {
+      console.error(`[CAPTURE] Razorpay API error:`, razorpayError.response?.data || razorpayError.message);
+      
+      // Provide more specific error message based on Razorpay's response
+      const errorDetail = razorpayError.response?.data?.error?.description || 
+                          razorpayError.response?.data?.error ||
+                          razorpayError.message || 
+                          'Unknown error occurred during payment capture';
+      
+      res.status(razorpayError.response?.status || 500).json({
+        error: errorDetail,
+        code: razorpayError.response?.data?.error?.code
+      });
+    }
   } catch (error) {
-    console.error('Error capturing payment:', error.response?.data || error.message);
-    res.status(error.response?.status || 500).json({
-      error: error.response?.data || error.message
+    console.error(`[CAPTURE] Unexpected error:`, error);
+    res.status(500).json({
+      error: 'Internal server error'
     });
   }
 });
 
 // Keep legacy endpoint for backward compatibility
 app.post('/capture-payment', authenticateApiKey, async (req, res) => {
+  console.log(`[LEGACY] Received request to /capture-payment, redirecting to /api/payments/capture`);
   // Redirect to the new API endpoint
   req.url = '/api/payments/capture';
   app._router.handle(req, res);
