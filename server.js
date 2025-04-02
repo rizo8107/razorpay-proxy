@@ -19,6 +19,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
 }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // API Key Authentication Middleware
 const authenticateApiKey = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
@@ -34,7 +40,7 @@ const authenticateApiKey = (req, res, next) => {
 const RAZORPAY_API = 'https://api.razorpay.com/v1';
 
 // Create Razorpay order
-app.post('/create-order', authenticateApiKey, async (req, res) => {
+app.post('/api/orders', authenticateApiKey, async (req, res) => {
   try {
     const { amount, currency, receipt, notes } = req.body;
     
@@ -65,8 +71,15 @@ app.post('/create-order', authenticateApiKey, async (req, res) => {
   }
 });
 
+// Keep legacy endpoint for backward compatibility
+app.post('/create-order', authenticateApiKey, async (req, res) => {
+  // Redirect to the new API endpoint
+  req.url = '/api/orders';
+  app._router.handle(req, res);
+});
+
 // Get order details
-app.get('/orders/:orderId', authenticateApiKey, async (req, res) => {
+app.get('/api/orders/:orderId', authenticateApiKey, async (req, res) => {
   try {
     const { orderId } = req.params;
     
@@ -89,8 +102,15 @@ app.get('/orders/:orderId', authenticateApiKey, async (req, res) => {
   }
 });
 
+// Keep legacy endpoint for backward compatibility
+app.get('/orders/:orderId', authenticateApiKey, async (req, res) => {
+  // Redirect to the new API endpoint
+  req.url = `/api/orders/${req.params.orderId}`;
+  app._router.handle(req, res);
+});
+
 // List orders
-app.get('/orders', authenticateApiKey, async (req, res) => {
+app.get('/api/orders', authenticateApiKey, async (req, res) => {
   try {
     // Extract query parameters
     const { from, to, count, skip } = req.query;
@@ -123,8 +143,15 @@ app.get('/orders', authenticateApiKey, async (req, res) => {
   }
 });
 
+// Keep legacy endpoint for backward compatibility
+app.get('/orders', authenticateApiKey, async (req, res) => {
+  // Redirect to the new API endpoint
+  req.url = '/api/orders';
+  app._router.handle(req, res);
+});
+
 // Verify payment
-app.post('/verify-payment', authenticateApiKey, async (req, res) => {
+app.post('/api/payments/verify', authenticateApiKey, async (req, res) => {
   try {
     const { payment_id, order_id, signature } = req.body;
     
@@ -167,8 +194,15 @@ app.post('/verify-payment', authenticateApiKey, async (req, res) => {
   }
 });
 
+// Keep legacy endpoint for backward compatibility
+app.post('/verify-payment', authenticateApiKey, async (req, res) => {
+  // Redirect to the new API endpoint
+  req.url = '/api/payments/verify';
+  app._router.handle(req, res);
+});
+
 // Capture payment
-app.post('/capture-payment', authenticateApiKey, async (req, res) => {
+app.post('/api/payments/capture', authenticateApiKey, async (req, res) => {
   try {
     const { payment_id, amount } = req.body;
     
@@ -204,9 +238,30 @@ app.post('/capture-payment', authenticateApiKey, async (req, res) => {
   }
 });
 
+// Keep legacy endpoint for backward compatibility
+app.post('/capture-payment', authenticateApiKey, async (req, res) => {
+  // Redirect to the new API endpoint
+  req.url = '/api/payments/capture';
+  app._router.handle(req, res);
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// API version endpoint
+app.get('/api', (req, res) => {
+  res.json({
+    name: 'Razorpay Proxy API',
+    version: '1.0.0',
+    endpoints: {
+      orders: '/api/orders',
+      verifyPayment: '/api/payments/verify',
+      capturePayment: '/api/payments/capture',
+      health: '/health'
+    }
+  });
 });
 
 // Start server

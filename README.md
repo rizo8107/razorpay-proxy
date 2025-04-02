@@ -56,25 +56,36 @@ For more information, refer to [Razorpay's documentation on payment capture](htt
 6. Configure environment variables (PORT, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, API_KEY, ALLOWED_ORIGINS)
 7. Deploy the application
 
-### API Endpoints
+## API Endpoints
 
 Include the `X-API-Key` header with your API key for all requests.
 
-#### Order Management
-- `POST /create-order`: Create a new Razorpay order
+### API Information
+- `GET /api`: Get API information and available endpoints
+
+### Order Management
+- `POST /api/orders`: Create a new Razorpay order
   - Body: `{ "amount": 50000, "currency": "INR", "receipt": "receipt_123", "notes": {} }`
-- `GET /orders/:orderId`: Get details of a specific order
-- `GET /orders`: List all orders
+- `GET /api/orders/:orderId`: Get details of a specific order
+- `GET /api/orders`: List all orders
   - Query params: `from`, `to`, `count`, `skip`
 
-#### Payment Operations
-- `POST /verify-payment`: Verify a payment signature
+### Payment Operations
+- `POST /api/payments/verify`: Verify a payment signature
   - Body: `{ "payment_id": "pay_123", "order_id": "order_123", "signature": "generated_signature" }`
-- `POST /capture-payment`: Manually capture a payment (if auto-capture is OFF)
+- `POST /api/payments/capture`: Manually capture a payment (if auto-capture is OFF)
   - Body: `{ "payment_id": "pay_123", "amount": 50000 }`
 
-#### Monitoring
+### Monitoring
 - `GET /health`: Check if the server is running
+
+### Legacy Endpoints
+The following legacy endpoints are maintained for backward compatibility:
+- `POST /create-order` → redirects to `/api/orders`
+- `GET /orders/:orderId` → redirects to `/api/orders/:orderId`
+- `GET /orders` → redirects to `/api/orders`
+- `POST /verify-payment` → redirects to `/api/payments/verify`
+- `POST /capture-payment` → redirects to `/api/payments/capture`
 
 ## Security Considerations
 
