@@ -41,10 +41,10 @@ app.post('/create-order', authenticateApiKey, async (req, res) => {
     // Ensure payment_capture is set to 1
     const requestBody = {
       amount,
-      currency,
-      receipt,
+      currency: currency || 'INR',
+      receipt: receipt || `receipt_${Date.now()}`,
       payment_capture: 1, // Force payment_capture to 1
-      notes
+      notes: notes || {}
     };
     
     console.log('Creating order with:', requestBody);
@@ -60,6 +60,64 @@ app.post('/create-order', authenticateApiKey, async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error('Error creating order:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+// Get order details
+app.get('/orders/:orderId', authenticateApiKey, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    console.log(`Fetching details for order: ${orderId}`);
+    
+    const response = await axios.get(`${RAZORPAY_API}/orders/${orderId}`, {
+      auth: {
+        username: process.env.RAZORPAY_KEY_ID,
+        password: process.env.RAZORPAY_KEY_SECRET
+      }
+    });
+    
+    console.log('Order details fetched successfully');
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching order details:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+// List orders
+app.get('/orders', authenticateApiKey, async (req, res) => {
+  try {
+    // Extract query parameters
+    const { from, to, count, skip } = req.query;
+    
+    // Construct query parameters
+    const queryParams = new URLSearchParams();
+    if (from) queryParams.append('from', from);
+    if (to) queryParams.append('to', to);
+    if (count) queryParams.append('count', count);
+    if (skip) queryParams.append('skip', skip);
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    
+    console.log(`Listing orders with params: ${queryString || 'none'}`);
+    
+    const response = await axios.get(`${RAZORPAY_API}/orders${queryString}`, {
+      auth: {
+        username: process.env.RAZORPAY_KEY_ID,
+        password: process.env.RAZORPAY_KEY_SECRET
+      }
+    });
+    
+    console.log(`Listed ${response.data.count} orders`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error listing orders:', error.response?.data || error.message);
     res.status(error.response?.status || 500).json({
       error: error.response?.data || error.message
     });
